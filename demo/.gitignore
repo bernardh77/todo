@@ -1,0 +1,16 @@
+# Ignore Python/Django files
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3  # Ignore SQLite database (if using SQLite)
+.env        # Ignore environment variables (if using dotenv)
+
+# Ignore Django migrations
+**/migrations/*.pyc
+**/migrations/*.py
+!**/migrations/__init__.py
+
+# Ignore VSCode and MacOS system files
+.vscode/
+.DS_Store
+venv
