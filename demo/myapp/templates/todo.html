@@ -4,17 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>To-Do List</title>
+    <style>
+        /* Default light mode styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            text-align: center;
+        }
+        body.dark-mode {
+            background-color: #121212;
+            color: white;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            padding: 8px;
+            border-bottom: 1px solid #ccc;
+        }
+        button {
+            margin-top: 10px;
+            padding: 8px 15px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+        }
+        #theme-toggle {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
 </head>
 <body>
+
     <h1>To-Do List ({{ request.user.username }})</h1>
     <a href="{% url 'logout' %}">Logout</a>
-    
+
     <form method="POST">
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit">Add</button>
     </form>
-    
+
     <ul>
         {% for todo in todos %}
             <li>{{ todo.title }}</li>
@@ -22,5 +58,29 @@
             <li>No tasks yet.</li>
         {% endfor %}
     </ul>    
+
+    <!-- Show the theme toggle button only for mods -->
+    {% if request.user.is_mod %}
+        <button id="theme-toggle">Toggle Dark Mode</button>
+    {% endif %}
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggleButton = document.getElementById("theme-toggle");
+        const currentTheme = localStorage.getItem("theme") || "light";
+
+        // Apply saved theme
+        document.body.classList.toggle("dark-mode", currentTheme === "dark");
+
+        if (toggleButton) {
+            toggleButton.addEventListener("click", function () {
+                let newTheme = document.body.classList.contains("dark-mode") ? "light" : "dark";
+                document.body.classList.toggle("dark-mode", newTheme === "dark");
+                localStorage.setItem("theme", newTheme);
+            });
+        }
+    });
+    </script>
+
 </body>
 </html>
