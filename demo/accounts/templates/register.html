@@ -1,9 +1,36 @@
-<h2>Register</h2>
-<form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Sign Up</button>
-</form>
-
-<!-- Button to go back to Sign In page -->
-<a href="{% url 'login' %}" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Back to Sign In</a>
+{% load static %}
+<!DOCTYPE html>
+{% load form_tags %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-96">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Register</h2>
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">{{ field.label }}</label>
+                {{ field|addclass:"w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+                {% if field.errors %}
+                <p class="text-red-500 text-xs italic">{{ field.errors.0 }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200">
+                Sign Up
+            </button>
+        </form>
+        <div class="mt-4 text-center">
+            <a href="{% url 'login' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                Already have an account? Login
+            </a>
+        </div>
+    </div>
+</body>
+</html>
