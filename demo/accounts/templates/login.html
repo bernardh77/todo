@@ -23,6 +23,11 @@
                 {% endif %}
             </div>
             {% endfor %}
+            <div class="text-right">
+                <a href="{% url 'password_reset' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    Forgot Password?
+                </a>
+            </div>
             <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200">
                 Login
             </button>
