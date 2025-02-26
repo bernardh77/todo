@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import CustomUserCreationForm
+from django.contrib.auth.decorators import login_required
+from .models import ModProfile
 
 
 def register(request):
@@ -32,3 +34,11 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')  # Redirect to login after logout
+
+@login_required
+def toggle_theme(request):
+    if request.user.is_mod:
+        mod_profile, created = ModProfile.objects.get_or_create(user=request.user)
+        mod_profile.theme = "dark" if mod_profile.theme == "light" else "light"
+        mod_profile.save()
+    return redirect("todo")
