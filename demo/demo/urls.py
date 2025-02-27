@@ -22,6 +22,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("myapp.urls")),
     path('accounts/', include('accounts.urls')),
+    path('accounts/', include('allauth.urls')),
     # wherever i go into an empty string, i want to forward all of the diff urls into myapp.urls and then be handled in myapp.urls, and the rest of the string
     # will be taken care there.
 ]
