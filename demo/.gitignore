@@ -4,6 +4,8 @@ __pycache__/
 *.pyo
 db.sqlite3  # Ignore SQLite database (if using SQLite)
 .env        # Ignore environment variables (if using dotenv)
+.env.*
+!.env.example
 
 # Ignore Django migrations
 **/migrations/*.pyc
