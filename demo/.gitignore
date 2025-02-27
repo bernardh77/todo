@@ -15,4 +15,4 @@ db.sqlite3  # Ignore SQLite database (if using SQLite)
 # Ignore VSCode and MacOS system files
 .vscode/
 .DS_Store
-venv.env
+venv
