@@ -1,9 +1,9 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
-from .models import ModProfile
+from .models import ModProfile, Todo
 from django import forms
 from django.core.mail import send_mail, BadHeaderError
 from django.contrib.auth.forms import PasswordResetForm
@@ -18,6 +18,9 @@ from django.contrib.auth import get_user_model
 import logging  # Add this import
 from django.contrib.auth.views import PasswordResetConfirmView
 from django.urls import reverse_lazy
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from .serializers import TodoSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -133,3 +136,17 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
 
 def password_reset_complete(request):
     return render(request, "password_reset_complete.html")
+
+class TodoViewSet(viewsets.ModelViewSet):
+    serializer_class = TodoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Todo.objects.filter(user=self.request.user).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+@login_required
+def todo_view(request):
+    return render(request, 'todo.html')

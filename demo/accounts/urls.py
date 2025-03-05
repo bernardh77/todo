@@ -1,6 +1,12 @@
 from django.urls import path
 from . import views
 from django.contrib.auth import views as auth_views
+from rest_framework.routers import DefaultRouter
+from django.views.generic import TemplateView
+
+# Create a router and register our viewsets with it
+router = DefaultRouter()
+router.register(r'todos', views.TodoViewSet, basename='todo')
 
 urlpatterns = [
     path('register/', views.register, name='register'),
@@ -15,4 +21,11 @@ urlpatterns = [
     path('reset/done/', 
          auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html'),
          name='password_reset_complete'),
-]
+    path('todo/', views.todo_view, name='todo'),
+    path('api/todos/', views.TodoViewSet.as_view({'get': 'list', 'post': 'create'}), name='todo-list'),
+    path('api/todos/<int:pk>/', views.TodoViewSet.as_view({
+        'get': 'retrieve',
+        'patch': 'partial_update',
+        'delete': 'destroy'
+    }), name='todo-detail'),
+] + router.urls  # Add the router URLs

@@ -18,6 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
+from django.views.generic import TemplateView
 
 def redirect_to_todo(request):
     return redirect('todo')
@@ -28,4 +29,6 @@ urlpatterns = [
     path("", include("myapp.urls")),
     path('accounts/', include('accounts.urls')),
     path('accounts/', include('allauth.urls')),
+    path('api/', include('accounts.urls')),
+    path('', TemplateView.as_view(template_name='index.html'), name='home'),
 ]
