@@ -16,3 +16,5 @@ db.sqlite3  # Ignore SQLite database (if using SQLite)
 .vscode/
 .DS_Store
 venv
+
+node_modules/

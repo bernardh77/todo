@@ -134,6 +134,58 @@ geocoder.on('result', function(e) {
     document.getElementById('longitude').value = e.result.center[0];
 });
 
+// Allow users to click on the map to set a location
+let currentMarker = null; // Store the current marker reference
+
+map.on('click', function(e) {
+    const lngLat = e.lngLat;
+    const [lng, lat] = [lngLat.lng, lngLat.lat];
+
+    // Update input fields with clicked location
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
+
+    // Perform reverse geocoding to get the address
+    reverseGeocode(lng, lat);
+
+    // Remove existing marker if it exists
+    if (currentMarker) {
+        currentMarker.remove();
+    }
+
+    // Add a new marker at the clicked location
+    currentMarker = new mapboxgl.Marker()
+        .setLngLat([lng, lat])
+        .addTo(map);
+});
+
+// Function to perform reverse geocoding
+async function reverseGeocode(lng, lat) {
+    try {
+        const response = await axios.get(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json`,
+            {
+                params: {
+                    access_token: mapboxgl.accessToken,
+                },
+            }
+        );
+
+        if (response.data.features.length > 0) {
+            const place = response.data.features[0];
+            const placeName = place.place_name;
+
+            // Update the location name input with the fetched address
+            document.getElementById('location_name').value = placeName;
+        } else {
+            alert('Address not found. Try again!');
+        }
+    } catch (error) {
+        console.error('Error fetching address:', error);
+        alert('Could not fetch address. Please try again.');
+    }
+}
+
 let detailMap = null;
 
 function showTodoDetails(id, title, description, location, lat, lng) {
@@ -186,55 +238,5 @@ window.onclick = function(event) {
         closeModal();
     }
 }
-
-/* 
-// Optional: Axios-based search function (if you wish to use custom search logic)
-// function searchLocation(location) {
-//     axios.get(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(location)}.json`, {
-//         params: {
-//             access_token: mapboxgl.accessToken,
-//             limit: 1,
-//         },
-//     })
-//     .then(response => {
-//         if (response.data.features.length > 0) {
-//             const place = response.data.features[0];
-//             const placeName = place.place_name;
-//             const [lng, lat] = place.center;
-//             document.getElementById('location_name').value = placeName;
-//             document.getElementById('latitude').value = lat;
-//             document.getElementById('longitude').value = lng;
-//             updateMap(lat, lng, placeName);
-//         } else {
-//             alert('Location not found. Try again!');
-//         }
-//     })
-//     .catch(error => {
-//         console.error('Error fetching location:', error);
-//         alert('Could not fetch location. Please check your input and try again.');
-//     });
-// }
-
-// function updateMap(lat, lng, placeName) {
-//     map.flyTo({
-//         center: [lng, lat],
-//         zoom: 14,
-//         essential: true,
-//     });
-//     document.querySelectorAll('.mapboxgl-marker').forEach(marker => marker.remove());
-//     new mapboxgl.Marker()
-//         .setLngLat([lng, lat])
-//         .setPopup(new mapboxgl.Popup().setHTML(`<h4>${placeName}</h4>`))
-//         .addTo(map);
-// }
-
-// // Listen for changes in the location_name input to trigger the Axios search (if needed)
-// document.getElementById('location_name').addEventListener('change', (event) => {
-//     const location = event.target.value;
-//     if (location) {
-//         searchLocation(location);
-//     }
-// });
-*/
 </script>
 {% endblock %}
