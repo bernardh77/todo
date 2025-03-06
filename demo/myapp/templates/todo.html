@@ -8,42 +8,52 @@
 <!-- Mapbox Scripts -->
 <script src='https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js'></script>
 <link href='https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css' rel='stylesheet' />
-<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
-<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
+<!-- Mapbox Search JS -->
+<script id="search-js" defer src="https://api.mapbox.com/search-js/v1.0.0/web.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<style>
+  /* Ensure the search box is visible and properly styled */
+  mapbox-search-box {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.75rem;
+  }
+  
+  /* Style the internal input element */
+  mapbox-search-box::part(input) {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    border: 1px solid #cbd5e0;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Todo Form -->
-    <form method="POST" action="{% url 'add_todo' %}" class="mb-8 bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+    <form method="POST" action="{% url 'add_todo' %}" class="mb-8 bg-white shadow-md rounded px-8 pt-6 pb-8">
         {% csrf_token %}
         <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="title">
-                Title
-            </label>
-            <input type="text" name="title" id="title" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            <label class="block text-gray-700 text-sm font-bold mb-2">Title</label>
+            <input type="text" name="title" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700">
         </div>
         <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
-                Description
-            </label>
-            <textarea name="description" id="description" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+            <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+            <textarea name="description" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"></textarea>
         </div>
         <!-- Location Fields -->
         <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="location">
-                Location
-            </label>
+            <label class="block text-gray-700 text-sm font-bold mb-2">Location</label>
+            <mapbox-search-box id="search-box" access-token="{{ mapbox_token }}" class="mb-3"></mapbox-search-box>
             <div id="map" class="w-full aspect-[16/9] rounded-lg overflow-hidden shadow-md"></div>
-            <input type="text" id="location_name" name="location_name" class="mt-3 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Location name">
+            <input type="text" id="location_name" name="location_name" class="mt-3 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" placeholder="Location name" readonly>
             <input type="hidden" id="latitude" name="latitude">
             <input type="hidden" id="longitude" name="longitude">
         </div>
         <div class="flex justify-end">
-            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                Add Todo
-            </button>
+            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add Todo</button>
         </div>
     </form>
 
@@ -102,130 +112,486 @@
 <script>
 mapboxgl.accessToken = '{{ mapbox_token }}';
 
-// Initialize the main map with UNSW as the default center
+// Generate a UUID for session token
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+// Create a session token for the search session
+const sessionToken = generateUUID();
+
+// Initialize the map
 const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v12',
-    center: [151.2500, -33.9189], // Coordinates for UNSW
+    center: [151.2500, -33.9189], // Default: UNSW
     zoom: 14,
     attributionControl: true
 });
 
-// Add navigation controls to the main map
+// Add navigation controls
 map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-// Initialize the Mapbox Geocoder control with supported types only
-const geocoder = new MapboxGeocoder({
-    accessToken: mapboxgl.accessToken,
-    mapboxgl: mapboxgl,
-    marker: false,
-    placeholder: 'Search for a location',
-    countries: 'au', // Focus on Australia
-    language: 'en',
-    types: 'poi.landmark,poi,address,place'
-});
-
-map.addControl(geocoder);
 
 // Store the current marker reference
 let currentMarker = null;
 
-// Function to fetch locations based on user input
-function fetchLocations(query) {
-    fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?types=poi,address,place&access_token=${mapboxgl.accessToken}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log(data.features); // Log the features to the console
-            // You can also handle the results here, e.g., display them in a dropdown
-        })
-        .catch(error => console.error('Error fetching locations:', error));
-}
-
-// Update the hidden fields when a location is selected via the geocoder
-geocoder.on('result', function(e) {
-    // Remove existing marker if it exists
-    if (currentMarker) {
-        currentMarker.remove();
+// Wait for the Mapbox Search JS script to load
+document.getElementById('search-js').onload = function() {
+    console.log('Search JS loaded');
+    
+    // Get the search box element that's already in the DOM
+    const searchBox = document.getElementById('search-box');
+    
+    if (!searchBox) {
+        console.error('Search box element not found');
+        return;
     }
+    
+    console.log('Search box element found:', searchBox);
+    
+    try {
+        // Set the session token for billing purposes
+        searchBox.sessionToken = sessionToken;
+        
+        // Configure the search box with options from the API documentation
+        searchBox.options = {
+            country: 'au',
+            language: 'en',
+            types: 'address,poi,place',
+            bbox: [149.9719, -34.3209, 151.6438, -33.4461], // Sydney area
+            proximity: [151.2500, -33.9189], // UNSW coordinates
+            limit: 10,
+            fuzzyMatch: true,
+            autocomplete: true
+        };
+        
+        console.log('Search box options set');
 
-    // Set the new location values
-    document.getElementById('location_name').value = e.result.place_name;
-    document.getElementById('latitude').value = e.result.center[1];
-    document.getElementById('longitude').value = e.result.center[0];
+        // Bind the search box to the map for better integration
+        searchBox.mapboxgl = mapboxgl;
+        
+        // Handle selection from search box
+        searchBox.addEventListener('retrieve', (event) => {
+            console.log('Retrieve event triggered');
+            const response = event.detail;
+            
+            // Log the entire response for debugging
+            console.log('Raw response data:', response);
+            
+            if (!response) {
+                console.warn('No response in retrieve event');
+                return;
+            }
 
-    // Add a new marker at the selected location
-    currentMarker = new mapboxgl.Marker({ draggable: true }) // Make the marker draggable
-        .setLngLat(e.result.center)
-        .addTo(map);
+            try {
+                // Handle both single Feature and FeatureCollection responses
+                let feature;
+                
+                // Check if we have a FeatureCollection
+                if (response.type === 'FeatureCollection' && response.features && response.features.length > 0) {
+                    console.log('Received a FeatureCollection with', response.features.length, 'features');
+                    // Use the first feature from the collection
+                    feature = response.features[0];
+                } else {
+                    // Assume it's a single feature
+                    feature = response;
+                }
+                
+                console.log('Processing feature:', feature);
+                
+                if (!feature) {
+                    console.warn('No valid feature found in response');
+                    alert('No valid location data found. Please try a different search.');
+                    return;
+                }
 
-    // Clear the Mapbox Geocoder input when the marker is moved
-    currentMarker.on('dragend', function() {
-        const lngLat = currentMarker.getLngLat();
-        reverseGeocode(lngLat.lng, lngLat.lat); // Update the location name based on the new position
+                // First, check if we have a feature.feature_type to determine the response format
+                console.log('Feature type:', feature.feature_type);
+                console.log('Feature properties:', feature.properties);
+                
+                // Extract coordinates based on the Mapbox Search Box API structure
+                let coordinates;
+                
+                // For Mapbox Search Box API, coordinates are typically in feature.coordinates
+                if (feature.coordinates) {
+                    if (feature.coordinates.longitude !== undefined && feature.coordinates.latitude !== undefined) {
+                        coordinates = [feature.coordinates.longitude, feature.coordinates.latitude];
+                        console.log('Found coordinates in feature.coordinates object:', coordinates);
+                    } else if (Array.isArray(feature.coordinates)) {
+                        coordinates = feature.coordinates;
+                        console.log('Found coordinates in feature.coordinates array:', coordinates);
+                    }
+                }
+                
+                // Check for routable_points which is sometimes used in the Search Box API
+                if (!coordinates && feature.coordinates && feature.coordinates.routable_points && 
+                    feature.coordinates.routable_points.length > 0) {
+                    const point = feature.coordinates.routable_points[0];
+                    coordinates = [point.longitude, point.latitude];
+                    console.log('Found coordinates in routable_points:', coordinates);
+                }
+                
+                // Check for standard GeoJSON format
+                if (!coordinates && feature.geometry && feature.geometry.coordinates) {
+                    coordinates = feature.geometry.coordinates;
+                    console.log('Found coordinates in geometry.coordinates:', coordinates);
+                }
+                
+                // Check for center property
+                if (!coordinates && feature.center) {
+                    coordinates = feature.center;
+                    console.log('Found coordinates in center property:', coordinates);
+                }
+                
+                // Check for bbox center as last resort
+                if (!coordinates && feature.bbox) {
+                    // Calculate center of bounding box
+                    const bbox = feature.bbox;
+                    const lng = (bbox[0] + bbox[2]) / 2;
+                    const lat = (bbox[1] + bbox[3]) / 2;
+                    coordinates = [lng, lat];
+                    console.log('Calculated coordinates from bbox:', coordinates);
+                }
+                
+                if (!coordinates) {
+                    console.error('Could not find coordinates in feature:', feature);
+                    alert('Could not find coordinates for the selected location. Please try a different location.');
+                    return;
+                }
+                
+                console.log('Final extracted coordinates:', coordinates);
 
-        // Clear the Mapbox Geocoder input
-        const geocoderInput = document.querySelector('.mapboxgl-ctrl-geocoder--input');
-        if (geocoderInput) {
-            geocoderInput.value = ''; // Clear the input field
+                // Extract location name with multiple fallbacks
+                let locationName = '';
+                
+                // Try various paths to find a proper name based on the Search Box API structure
+                if (feature.name) {
+                    locationName = feature.name;
+                } else if (feature.place_name) {
+                    locationName = feature.place_name;
+                } else if (feature.properties) {
+                    if (feature.properties.name) {
+                        locationName = feature.properties.name;
+                    } else if (feature.properties.full_address) {
+                        locationName = feature.properties.full_address;
+                    } else if (feature.properties.address) {
+                        locationName = feature.properties.address;
+                    } else if (feature.properties.place_name) {
+                        locationName = feature.properties.place_name;
+                    }
+                } else if (feature.text) {
+                    locationName = feature.text;
+                }
+                
+                if (!locationName) {
+                    locationName = `Selected Location (${coordinates[1].toFixed(6)}, ${coordinates[0].toFixed(6)})`;
+                }
+                
+                console.log('Extracted location name:', locationName);
+                
+                // Set form values
+                document.getElementById('location_name').value = locationName;
+                document.getElementById('latitude').value = coordinates[1];  // latitude is the second element
+                document.getElementById('longitude').value = coordinates[0]; // longitude is the first element
+                
+                // Remove existing marker if exists
+                if (currentMarker) {
+                    currentMarker.remove();
+                }
+                
+                // Remove existing popups
+                document.querySelectorAll('.mapboxgl-popup').forEach(popup => popup.remove());
+
+                // Add marker with animation
+                currentMarker = new mapboxgl.Marker({ 
+                    draggable: true,
+                    color: '#3FB1CE' // Bright blue for visibility
+                })
+                    .setLngLat(coordinates)
+                    .addTo(map);
+
+                // Add popup with location name for better UX
+                new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+                    .setLngLat(coordinates)
+                    .setHTML(`<p class="font-semibold">${locationName}</p>`)
+                    .addTo(map);
+
+                // Fly to location with animation
+                map.flyTo({
+                    center: coordinates,
+                    zoom: 16,
+                    essential: true,
+                    duration: 1500 // Animation duration in milliseconds
+                });
+                
+                console.log('Map centered on coordinates:', coordinates);
+
+                // Drag marker to update location
+                currentMarker.on('dragend', function() {
+                    const lngLat = currentMarker.getLngLat();
+                    console.log('Marker dragged to:', lngLat);
+                    reverseGeocode(lngLat.lng, lngLat.lat);
+                });
+            } catch (error) {
+                console.error('Error processing search result:', error);
+                console.error('Feature that caused error:', feature);
+                alert('There was an error processing the selected location. Please try again.');
+            }
+        });
+
+        // Also enhance the search box to ensure it's working
+        searchBox.placeholder = 'Search for an address or landmark';
+
+        // Add a debugging helper function
+        function checkSearchBoxStatus() {
+            const searchBox = document.getElementById('search-box');
+            if (!searchBox) {
+                console.error('Search box element not found - checkSearchBoxStatus');
+                return;
+            }
+            
+            console.log('Search box status:', {
+                'Element': searchBox,
+                'Has sessionToken': !!searchBox.sessionToken,
+                'Has options': !!searchBox.options,
+                'Has event listeners': searchBox._events || 'Unknown'
+            });
         }
-    });
-});
 
-// Allow users to click on the map to set a location
+        // Check search box status after a short delay
+        setTimeout(checkSearchBoxStatus, 2000);
+
+        // Handle errors according to API documentation
+        searchBox.addEventListener('error', (event) => {
+            console.error('Search error:', event.detail);
+            alert('There was an error with the search. Please try again.');
+        });
+        
+        // Add suggestion event listener to debug
+        searchBox.addEventListener('suggest', (event) => {
+            console.log('Suggestion event:', event.detail);
+        });
+        
+        console.log('Event listeners added');
+    } catch (error) {
+        console.error('Error initializing search box:', error);
+    }
+};
+
+// Click on map to select location
 map.on('click', function(e) {
     const lngLat = e.lngLat;
     const [lng, lat] = [lngLat.lng, lngLat.lat];
 
-    // Update input fields with clicked location
+    // Update input fields
     document.getElementById('latitude').value = lat;
     document.getElementById('longitude').value = lng;
 
-    // Perform reverse geocoding to get the address
+    // Reverse geocode
     reverseGeocode(lng, lat);
 
-    // Remove existing marker if it exists
+    // Remove existing marker
     if (currentMarker) {
         currentMarker.remove();
     }
 
-    // Add a new marker at the clicked location
-    currentMarker = new mapboxgl.Marker({ draggable: true }) // Make the marker draggable
+    // Add new marker
+    currentMarker = new mapboxgl.Marker({ draggable: true })
         .setLngLat([lng, lat])
         .addTo(map);
 
-    // Clear the Mapbox Geocoder input when the marker is moved
+    // Drag marker updates location
     currentMarker.on('dragend', function() {
         const lngLat = currentMarker.getLngLat();
-        reverseGeocode(lngLat.lng, lngLat.lat); // Update the location name based on the new position
-
-        // Clear the Mapbox Geocoder input
-        const geocoderInput = document.querySelector('.mapboxgl-ctrl-geocoder--input');
-        if (geocoderInput) {
-            geocoderInput.value = ''; // Clear the input field
-        }
+        reverseGeocode(lngLat.lng, lngLat.lat);
     });
-
-    // Clear the Mapbox Geocoder input when the map is clicked
-    const geocoderInput = document.querySelector('.mapboxgl-ctrl-geocoder--input');
-    if (geocoderInput) {
-        geocoderInput.value = ''; // Clear the input field
-    }
 });
 
-// Example usage of fetchLocations function
-// Call this function when you want to search for a landmark
-// fetchLocations('sydney opera house'); // Uncomment to test
-
-// Function to perform reverse geocoding
+// Reverse geocoding using the Search Box API's reverse endpoint
 async function reverseGeocode(lng, lat) {
     try {
-        const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token={{ mapbox_token }}&limit=1`);
+        // First try using the Mapbox Geocoding API which often provides better address results
+        const geocodingResponse = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?` +
+            `access_token=${mapboxgl.accessToken}&` +
+            `types=address,place,neighborhood,locality,district,postcode,region&` +
+            `limit=1`
+        );
+        
+        const geocodingData = await geocodingResponse.json();
+        console.log("Primary geocoding response:", geocodingData);
+        
+        if (geocodingData.features && geocodingData.features.length > 0) {
+            const feature = geocodingData.features[0];
+            document.getElementById('location_name').value = feature.place_name;
+            
+            // Update popup with the address
+            if (currentMarker) {
+                // Remove existing popups
+                document.querySelectorAll('.mapboxgl-popup').forEach(popup => popup.remove());
+                
+                // Add new popup
+                new mapboxgl.Popup()
+                    .setLngLat([lng, lat])
+                    .setHTML(`<p>${feature.place_name}</p>`)
+                    .addTo(map);
+            }
+            return; // Exit early if we got a good result
+        }
+        
+        // If the first method didn't work, try the Search Box API's reverse endpoint
+        const response = await fetch(
+            `https://api.mapbox.com/search/searchbox/v1/reverse?` +
+            `longitude=${lng}&latitude=${lat}&` +
+            `access_token=${mapboxgl.accessToken}&` +
+            `session_token=${sessionToken}&` +
+            `limit=1&` +
+            `language=en&` +
+            `types=address,street,neighborhood,postcode,district,place,locality,region`
+        );
+        
         const data = await response.json();
-        if (data.features.length > 0) {
-            document.getElementById('location_name').value = data.features[0].place_name; // Update the location name
+        console.log("Search Box reverse geocode response:", data);
+        
+        if (data.features && data.features.length > 0) {
+            const feature = data.features[0];
+            // Handle the response format according to the API documentation
+            let locationName = '';
+            
+            // Try to get the most detailed address information available
+            if (feature.properties) {
+                if (feature.properties.full_address) {
+                    locationName = feature.properties.full_address;
+                } else if (feature.properties.address) {
+                    locationName = feature.properties.address;
+                } else if (feature.properties.name) {
+                    locationName = feature.properties.name;
+                }
+            }
+            
+            if (!locationName && feature.place_name) {
+                locationName = feature.place_name;
+            }
+            
+            // If we still don't have a location name, try one more geocoding method
+            if (!locationName) {
+                try {
+                    const backupResponse = await fetch(
+                        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?` +
+                        `access_token=${mapboxgl.accessToken}&` +
+                        `types=address,place,neighborhood,locality,district,postcode,region&` +
+                        `limit=1`
+                    );
+                    
+                    const backupData = await backupResponse.json();
+                    console.log("Backup geocoding response:", backupData);
+                    
+                    if (backupData.features && backupData.features.length > 0) {
+                        locationName = backupData.features[0].place_name;
+                    }
+                } catch (backupError) {
+                    console.error("Backup geocoding failed:", backupError);
+                }
+            }
+            
+            // Last resort: use coordinates
+            if (!locationName) {
+                locationName = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            }
+            
+            document.getElementById('location_name').value = locationName;
+            
+            // Update popup with new location name
+            if (currentMarker) {
+                // Remove existing popups
+                document.querySelectorAll('.mapboxgl-popup').forEach(popup => popup.remove());
+                
+                // Add new popup
+                new mapboxgl.Popup()
+                    .setLngLat([lng, lat])
+                    .setHTML(`<p>${locationName}</p>`)
+                    .addTo(map);
+            }
+        } else {
+            // Try one more geocoding method if Search Box API didn't return results
+            try {
+                const backupResponse = await fetch(
+                    `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?` +
+                    `access_token=${mapboxgl.accessToken}&` +
+                    `types=address,place,neighborhood,locality,district,postcode,region&` +
+                    `limit=1`
+                );
+                
+                const backupData = await backupResponse.json();
+                console.log("Backup geocoding response:", backupData);
+                
+                if (backupData.features && backupData.features.length > 0) {
+                    const locationName = backupData.features[0].place_name;
+                    document.getElementById('location_name').value = locationName;
+                    
+                    // Update popup
+                    if (currentMarker) {
+                        // Remove existing popups
+                        document.querySelectorAll('.mapboxgl-popup').forEach(popup => popup.remove());
+                        
+                        // Add new popup
+                        new mapboxgl.Popup()
+                            .setLngLat([lng, lat])
+                            .setHTML(`<p>${locationName}</p>`)
+                            .addTo(map);
+                    }
+                } else {
+                    // No features found in any API, fall back to coordinates
+                    const locationName = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    document.getElementById('location_name').value = locationName;
+                }
+            } catch (backupError) {
+                console.error("Backup geocoding failed:", backupError);
+                // Last resort: use coordinates
+                const locationName = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                document.getElementById('location_name').value = locationName;
+            }
         }
     } catch (error) {
         console.error("Error getting address:", error);
+        // Last attempt with traditional geocoding
+        try {
+            const response = await fetch(
+                `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?` +
+                `access_token=${mapboxgl.accessToken}&` +
+                `types=address,place,neighborhood,locality,district,postcode,region&` +
+                `limit=1`
+            );
+            
+            const data = await response.json();
+            console.log("Final fallback geocode response:", data);
+            
+            if (data.features && data.features.length > 0) {
+                document.getElementById('location_name').value = data.features[0].place_name;
+                
+                // Update popup
+                if (currentMarker) {
+                    // Remove existing popups
+                    document.querySelectorAll('.mapboxgl-popup').forEach(popup => popup.remove());
+                    
+                    // Add new popup
+                    new mapboxgl.Popup()
+                        .setLngLat([lng, lat])
+                        .setHTML(`<p>${data.features[0].place_name}</p>`)
+                        .addTo(map);
+                }
+            } else {
+                // If even the fallback doesn't work, use coordinates
+                document.getElementById('location_name').value = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            }
+        } catch (fallbackError) {
+            console.error("Fallback geocoding also failed:", fallbackError);
+            // Last resort: just use the coordinates
+            document.getElementById('location_name').value = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        }
     }
 }
 
