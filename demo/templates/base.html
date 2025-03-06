@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Todo App</title>
+    <title>ToDo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     {% block extra_head %}{% endblock %}
 </head>
@@ -14,7 +14,7 @@
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="{% url 'todo' %}" class="text-xl font-bold text-gray-800">Todo App</a>
+                    <a href="{% url 'todo' %}" class="text-xl font-bold text-gray-800">ToDo</a>
                 </div>
                 <div class="flex items-center">
                     {% if user.is_authenticated %}

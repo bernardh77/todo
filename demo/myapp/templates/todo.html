@@ -58,10 +58,10 @@
     </form>
 
     <!-- Todo List -->
-    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8">
-        <h2 class="text-2xl font-bold mb-4">Your Todos</h2>
+    <div id="todo-list" class="bg-white shadow-md rounded px-8 pt-6 pb-8">
+        <h2 class="text-2xl font-bold mb-4">Your ToDos</h2>
         {% for todo in todos %}
-        <div class="flex items-center justify-between border-b py-4">
+        <div id="todo-{{ todo.id }}" class="flex items-center justify-between border-b py-4">
             <div class="flex-1 cursor-pointer" onclick="showTodoDetails('{{ todo.id }}', '{{ todo.title }}', '{{ todo.description }}', '{{ todo.location_name }}', '{{ todo.latitude }}', '{{ todo.longitude }}')">
                 <h3 class="text-lg font-semibold {% if todo.completed %}line-through text-gray-500{% endif %}">
                     {{ todo.title }}
@@ -74,13 +74,13 @@
                 {% endif %}
             </div>
             <div class="flex space-x-2">
-                <form method="POST" action="{% url 'toggle_todo' todo.id %}">
+                <form method="POST" action="{% url 'toggle_todo' todo.id %}#todo-{{ todo.id }}" class="inline">
                     {% csrf_token %}
                     <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded">
                         {% if todo.completed %}Undo{% else %}Complete{% endif %}
                     </button>
                 </form>
-                <form method="POST" action="{% url 'delete_todo' todo.id %}">
+                <form method="POST" action="{% url 'delete_todo' todo.id %}#todo-list" class="inline">
                     {% csrf_token %}
                     <button type="submit" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded">
                         Delete
