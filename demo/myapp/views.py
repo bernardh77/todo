@@ -4,7 +4,6 @@ from .forms import TodoForm
 from django.contrib.auth.decorators import login_required
 
 def home(request):
-    # return HttpResponse("hello world")
     return render(request, "home.html")
 
 @login_required  # Ensures only logged-in users can see their to-do list
