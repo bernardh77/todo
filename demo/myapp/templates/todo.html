@@ -313,12 +313,6 @@ document.getElementById('search-js').onload = function() {
                     .setLngLat(coordinates)
                     .addTo(map);
 
-                // Add popup with location name for better UX
-                new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
-                    .setLngLat(coordinates)
-                    .setHTML(`<p class="font-semibold">${locationName}</p>`)
-                    .addTo(map);
-
                 // Fly to location with animation
                 map.flyTo({
                     center: coordinates,
@@ -333,6 +327,19 @@ document.getElementById('search-js').onload = function() {
                 currentMarker.on('dragend', function() {
                     const lngLat = currentMarker.getLngLat();
                     console.log('Marker dragged to:', lngLat);
+                    
+                    // Clear the search box when marker is dragged
+                    const searchBox = document.getElementById('search-box');
+                    if (searchBox) {
+                        // Clear the search box input
+                        searchBox.value = '';
+                        
+                        // If the search box has a clear method, call it
+                        if (typeof searchBox.clear === 'function') {
+                            searchBox.clear();
+                        }
+                    }
+                    
                     reverseGeocode(lngLat.lng, lngLat.lat);
                 });
             } catch (error) {
@@ -390,6 +397,18 @@ map.on('click', function(e) {
     document.getElementById('latitude').value = lat;
     document.getElementById('longitude').value = lng;
 
+    // Clear the search box when clicking on the map
+    const searchBox = document.getElementById('search-box');
+    if (searchBox) {
+        // Clear the search box input
+        searchBox.value = '';
+        
+        // If the search box has a clear method, call it
+        if (typeof searchBox.clear === 'function') {
+            searchBox.clear();
+        }
+    }
+
     // Reverse geocode
     reverseGeocode(lng, lat);
 
@@ -406,6 +425,19 @@ map.on('click', function(e) {
     // Drag marker updates location
     currentMarker.on('dragend', function() {
         const lngLat = currentMarker.getLngLat();
+        
+        // Clear the search box when marker is dragged
+        const searchBox = document.getElementById('search-box');
+        if (searchBox) {
+            // Clear the search box input
+            searchBox.value = '';
+            
+            // If the search box has a clear method, call it
+            if (typeof searchBox.clear === 'function') {
+                searchBox.clear();
+            }
+        }
+        
         reverseGeocode(lngLat.lng, lngLat.lat);
     });
 });
@@ -428,17 +460,7 @@ async function reverseGeocode(lng, lat) {
             const feature = geocodingData.features[0];
             document.getElementById('location_name').value = feature.place_name;
             
-            // Update popup with the address
-            if (currentMarker) {
-                // Remove existing popups
-                document.querySelectorAll('.mapboxgl-popup').forEach(popup => popup.remove());
-                
-                // Add new popup
-                new mapboxgl.Popup()
-                    .setLngLat([lng, lat])
-                    .setHTML(`<p>${feature.place_name}</p>`)
-                    .addTo(map);
-            }
+            // Remove popup code since we don't want to show the address on the marker
             return; // Exit early if we got a good result
         }
         
@@ -504,17 +526,7 @@ async function reverseGeocode(lng, lat) {
             
             document.getElementById('location_name').value = locationName;
             
-            // Update popup with new location name
-            if (currentMarker) {
-                // Remove existing popups
-                document.querySelectorAll('.mapboxgl-popup').forEach(popup => popup.remove());
-                
-                // Add new popup
-                new mapboxgl.Popup()
-                    .setLngLat([lng, lat])
-                    .setHTML(`<p>${locationName}</p>`)
-                    .addTo(map);
-            }
+            // Remove popup code since we don't want to show the address on the marker
         } else {
             // Try one more geocoding method if Search Box API didn't return results
             try {
@@ -532,17 +544,7 @@ async function reverseGeocode(lng, lat) {
                     const locationName = backupData.features[0].place_name;
                     document.getElementById('location_name').value = locationName;
                     
-                    // Update popup
-                    if (currentMarker) {
-                        // Remove existing popups
-                        document.querySelectorAll('.mapboxgl-popup').forEach(popup => popup.remove());
-                        
-                        // Add new popup
-                        new mapboxgl.Popup()
-                            .setLngLat([lng, lat])
-                            .setHTML(`<p>${locationName}</p>`)
-                            .addTo(map);
-                    }
+                    // Remove popup code since we don't want to show the address on the marker
                 } else {
                     // No features found in any API, fall back to coordinates
                     const locationName = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
@@ -572,17 +574,7 @@ async function reverseGeocode(lng, lat) {
             if (data.features && data.features.length > 0) {
                 document.getElementById('location_name').value = data.features[0].place_name;
                 
-                // Update popup
-                if (currentMarker) {
-                    // Remove existing popups
-                    document.querySelectorAll('.mapboxgl-popup').forEach(popup => popup.remove());
-                    
-                    // Add new popup
-                    new mapboxgl.Popup()
-                        .setLngLat([lng, lat])
-                        .setHTML(`<p>${data.features[0].place_name}</p>`)
-                        .addTo(map);
-                }
+                // Remove popup code since we don't want to show the address on the marker
             } else {
                 // If even the fallback doesn't work, use coordinates
                 document.getElementById('location_name').value = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
