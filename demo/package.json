@@ -9,5 +9,9 @@
     "dev": "vite",
     "build": "tailwindcss -i ./accounts/static/css/input.css -o ./accounts/static/css/output.css --watch",
     "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mapbox/mapbox-gl-geocoder": "^5.0.3",
+    "@mapbox/search-js-react": "^1.0.0"
   }
 }
